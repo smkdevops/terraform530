@@ -1,0 +1,88 @@
+ I found two EBS volumes attached to the Instance with size of 200 and 60 GBs. The 200 GB volume was mounted to "/" partition and 60 GB volume was mounted at "/dev/docker" mount point. In order to fix the issue, we tried to create LVM partition from 200 GB volume but due to not having free sectors, we were unable to create new partition from the drive. 
+
+Since, we were unable to use 200 GB drive to create new partition, So we decided to create a new volume to fix the issue. While creating the new volume from the console, you encountered with "not authorized" error. As you updated that you can only create the volume using Terraform script. You will create the volume using Terraform script and will attach the new disk to the Instance.
+
+I updated you that after attaching the volume, please follow the below steps to mount the drive at the server for application mount point. I am sharing the steps for your reference.
+
+1. Create volume using Terraform script and use below URL to attach the volume to the Instance.
+
+ URL - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-attaching-volume.html 
+
+2. Run below command to see the new drive name information. You can see the size of new drive to check the name details.
+
+ # lsblk
+
+ Or
+
+ # fdisk -l
+
+You will see the new drive name like "/dev/nvme2n1".
+
+3. Use the gdisk command to create a partition. For the variable Hex code or GUID, enter 8e00. The following example creates the partition "/dev/nvme2n1p1". In the below output use "Last Sector" details as per your required partition size. For example, I have used 70 GB. With this to create lvm use hex code 8e00 and apply the changes type "w" in last "Command (? for help):" section.
+
+gdisk /dev/nvme2n1
+Command (? for help): n
+Partition number (1-1218, default 1): 1
+First sector (34-20971486, default = 2048) or {+-}size{KMGTP}:
+Last sector (2048-20971486, default = 20971486) or {+-}size{KMGTP}: +70G
+Current type is 'Linux filesystem'
+Hex code or GUID (L to show codes, Enter = 8300): 8e00        
+Changed type of partition to 'Linux LVM'
+
+Command (? for help): w
+
+Final checks complete. About to write GPT data. THIS WILL OVERWRITE EXISTING
+PARTITIONS!!
+
+Do you want to proceed? (Y/N): y
+OK; writing new GUID partition table (GPT) to /dev/nvme2n1.
+The operation has completed successfully.
+
+4. Use the lsblk command to confirm creation of the partition:
+
+ # lsblk 
+
+5. Use the pvcreate command to create a physical volume from the partition. The following example, creates a physical volume from /dev/nvme2n1p1.
+
+ # pvcreate /dev/nvme2n1p1
+
+NOTE : If you face "bash: pvcreate: command not found" error, than please run "yum install lvm2 -y" command to fix the issue.
+
+6. Use the vgcreate command to create a volume group to combine the new physical volumes. The following example uses one physical volume to create volume group "APP".
+
+ # vgcreate APP /dev/nvme2n1p1
+
+ Use the vgs or vgdisplay command to view the volume group details.
+
+7. Use the lvcreate command to create logical volumes (partitions) from your volume group. The following example creates one 50GB logical volume, D01 from the APP volume group.
+
+ # lvcreate -n D01 -L 50G APP
+
+ Use the lvs or lvdisplay command to view the logical volume details:
+
+8. Use the mkdir command to create a mount directory. The following example creates the directory /d01.
+
+ # mkdir /d01
+
+9. Run the mkfs -t command to create the file system. Note: Replace xfs with your file system type, if different. For example, use ext2, ext3, or ext4.
+
+  # mkfs -t xfs /dev/APP/D01
+
+
+10. Run the lsblk -f command to verify creation of the new file system. Note: The file system type that you created in the previous step appears under FSTYPE.
+
+11. Edit the mount options in the /etc/fstab file so that the new mount persists after reboot.
+
+    /dev/APP/D01 /d01   xfs     defaults,nofail   0   0
+
+12. Run the below command to apply mount at the server.
+
+  # mount -a
+
+13. Run the below command to see the mount point.
+
+ # df -h
+
+Please use the above given steps to create a new mount point for the application. You can also use the below URL to see the same steps. According to our call discussion, you will open a new case if you will face any issue while following the above steps.
+
+URL - https://aws.amazon.com/premiumsupport/knowledge-center/create-lv-on-ebs-partition/ 
