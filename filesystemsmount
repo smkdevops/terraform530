@@ -86,3 +86,32 @@ NOTE : If you face "bash: pvcreate: command not found" error, than please run "y
 Please use the above given steps to create a new mount point for the application. You can also use the below URL to see the same steps. According to our call discussion, you will open a new case if you will face any issue while following the above steps.
 
 URL - https://aws.amazon.com/premiumsupport/knowledge-center/create-lv-on-ebs-partition/ 
+
+
+
+h-4.2$ df -h
+Filesystem                                          Size  Used Avail Use% Mounted on
+devtmpfs                                            3.7G     0  3.7G   0% /dev
+tmpfs                                               3.8G     0  3.8G   0% /dev/shm
+tmpfs                                               3.8G  112M  3.7G   3% /run
+tmpfs                                               3.8G     0  3.8G   0% /sys/fs/cgroup
+/dev/nvme0n1p2                                      200G   15G  186G   8% /
+/dev/mapper/vg.docker-lv.dockerfs                    59G   53M   56G   1% /usr/docker
+/dev/mapper/appvg-srcespag_lv                        50G   53M   47G   1% /u01
+fs-0eb997bb475036683.efs.us-east-2.amazonaws.com:/  8.0E     0  8.0E   0% /u02
+tmpfs                                               761M     0  761M   0% /run/user/0
+sh-4.2$ cat /etc/fstab
+
+#
+# /etc/fstab
+# Created by anaconda on Thu Sep 17 19:11:46 2020
+#
+# Accessible filesystems, by reference, are maintained under '/dev/disk'
+# See man pages fstab(5), findfs(8), mount(8) and/or blkid(8) for more info
+#
+UUID=ca463cd7-12be-41d5-bc89-18d4d9bbe2bd /                       xfs     defaults        0 0
+/dev/vg.docker/lv.dockerfs /usr/docker ext4 defaults 0 0
+/dev/appvg/srcespag_lv /u01 ext4  defaults,nofail   0   0
+fs-0eb997bb475036683.efs.us-east-2.amazonaws.com:/ /u02 nfs defaults,_netdev 0 0
+sh-4.2$
+
